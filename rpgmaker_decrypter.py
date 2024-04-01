@@ -11,6 +11,13 @@ RGSSAD_V1_KEY = np.uint32(0xdeadcafe)
 THREE = np.uint32(3)
 SEVEN = np.uint32(7)
 
+ZERO = np.uint32(0)
+EIGHT = np.uint32(8)
+SIXTEEN = np.uint32(16)
+TWENTY_FOUR = np.uint32(24)
+
+SHIFTS = [ZERO, EIGHT, SIXTEEN, TWENTY_FOUR]
+
 def next_key(key: np.uint32) -> np.uint32:
     return key * SEVEN + THREE
 
@@ -58,9 +65,12 @@ def parse_byte(
     result, key = decrypt_byte(encrypted, key)
     return result, pos, key
 
-def parse_byte_fast(content: bytes, pos: int, key: np.uint32) -> np.uint8:
+def parse_byte_fast(
+    content: bytes, pos: int, key: np.uint32
+) -> tuple[np.uint8, int]:
+
     encrypted, pos = read_byte(content, pos)
-    return encrypted ^ np.uint8(key)
+    return encrypted ^ np.uint8(key), pos
 
 @dataclass
 class EncryptedFile:
@@ -115,22 +125,34 @@ def decrypt_file(encrypted: EncryptedFile) -> DecryptedFile:
     # keys = np.ndarray([key * 7 + 3])
 
     encrypted_content = encrypted.content
+    size = len(encrypted_content)
+
+    if size % 4:
+        encrypted_content += b'\0' * (4 - size % 4)
+    
     decrypted_content = bytearray()
     pos = 0
     key = encrypted.key
 
     while pos < len(encrypted.content):
-        char, pos, _ = parse_byte(
-            encrypted_content, pos,
-            key >> np.uint32((pos % 4) * 8)
-        )
+        # char, pos = parse_byte_fast(
+        #     encrypted_content, pos,
+        #     key >> SHIFTS[pos % 4]
+        # )
 
-        if pos % 4 == 0:
-            key = next_key(key)
+        # if pos % 4 == 0:
+        #     key = next_key(key)
 
-        decrypted_content.append(char)
+        # decrypted_content.append(char)
 
-    return DecryptedFile(encrypted.name, bytes(decrypted_content))
+        char1, pos = parse_byte_fast(encrypted_content, pos, key)
+        char2, pos = parse_byte_fast(encrypted_content, pos, key >> EIGHT)
+        char3, pos = parse_byte_fast(encrypted_content, pos, key >> SIXTEEN)
+        char4, pos = parse_byte_fast(encrypted_content, pos, key >> TWENTY_FOUR)
+        key = next_key(key)
+        decrypted_content.extend((char1, char2, char3, char4))
+
+    return DecryptedFile(encrypted.name, bytes(decrypted_content[:size]))
 
 def main(
     input_file: Path, output_dir: Path,
