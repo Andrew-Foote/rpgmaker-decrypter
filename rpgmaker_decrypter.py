@@ -110,31 +110,30 @@ class DecryptedFile:
     name: str
     content: bytes
 
+POWERS = np.uint32(256) ** np.array([0, 1, 2, 3], dtype=np.uint32)
+
 def decrypt_file(encrypted: EncryptedFile) -> DecryptedFile:
-    # encrypted_content = encrypted.content
-    # size = len(encrypted_content)
-    # nwords = size // 4 + (size % 4 > 0)
-    
-    # keys = [encrypted.key]
-
-    # for _ in range(nwords - 1):
-    #     keys.append(next_key(key))
-
-    
-
-    # keys = np.ndarray([key * 7 + 3])
-
     encrypted_content = encrypted.content
     size = len(encrypted_content)
 
     if size % 4:
         encrypted_content += b'\0' * (4 - size % 4)
+
+    # keys = [encrypted.key]
+
+    # for _ in range(size // 4):
+    #     keys.append(next_key(keys[-1]))
     
+    content_array = np.frombuffer(encrypted_content, dtype=np.uint8)
+
     decrypted_content = bytearray()
     pos = 0
-    key = encrypted.key
+    # key = encrypted.key
+    key_array = np.array(list(encrypted.key.tobytes()), dtype=np.uint32)
 
-    while pos < len(encrypted.content):
+    while pos < size:
+        #v1
+
         # char, pos = parse_byte_fast(
         #     encrypted_content, pos,
         #     key >> SHIFTS[pos % 4]
@@ -145,12 +144,23 @@ def decrypt_file(encrypted: EncryptedFile) -> DecryptedFile:
 
         # decrypted_content.append(char)
 
-        char1, pos = parse_byte_fast(encrypted_content, pos, key)
-        char2, pos = parse_byte_fast(encrypted_content, pos, key >> EIGHT)
-        char3, pos = parse_byte_fast(encrypted_content, pos, key >> SIXTEEN)
-        char4, pos = parse_byte_fast(encrypted_content, pos, key >> TWENTY_FOUR)
-        key = next_key(key)
-        decrypted_content.extend((char1, char2, char3, char4))
+        #v2
+        # char1, pos = parse_byte_fast(encrypted_content, pos, key)
+        # char2, pos = parse_byte_fast(encrypted_content, pos, key >> EIGHT)
+        # char3, pos = parse_byte_fast(encrypted_content, pos, key >> SIXTEEN)
+        # char4, pos = parse_byte_fast(encrypted_content, pos, key >> TWENTY_FOUR)
+        # key = next_key(key)
+        # decrypted_content.extend((char1, char2, char3, char4))
+
+
+
+        #v3
+        raw_bytes = content_array[pos:pos + 4]
+        decoded = raw_bytes ^ key_array
+        key = next_key(key_array.dot(POWERS))
+        key_array = np.array(list(key.tobytes()), dtype=np.uint32)
+        decrypted_content.extend(list(decoded))
+        pos += 4
 
     return DecryptedFile(encrypted.name, bytes(decrypted_content[:size]))
 
