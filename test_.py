@@ -31,7 +31,7 @@ def test_filenames_match(input_content: bytes) -> None:
 
 def test_contents_match(input_content: bytes) -> None:
     numfiles = sum(1 for _ in parse_encrypted_files(input_content))
-    sample = random.sample(range(numfiles), 10)
+    sample = random.sample(range(numfiles), 50)
 
     for i, ef in enumerate(parse_encrypted_files(input_content)):
        if i in sample:

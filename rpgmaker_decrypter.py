@@ -2,9 +2,14 @@
 # https://github.com/uuksu/RPGMakerDecrypter/tree/master.
 
 from dataclasses import dataclass
+from functools import partial
+import itertools as it
 from pathlib import Path
 import numpy as np
+import numpy.typing as npt
 from typing import Iterator
+
+PROFILING = False
 
 RGSSAD_V1_KEY = np.uint32(0xdeadcafe)
 
@@ -20,6 +25,11 @@ SHIFTS = [ZERO, EIGHT, SIXTEEN, TWENTY_FOUR]
 
 def next_key(key: np.uint32) -> np.uint32:
     return key * SEVEN + THREE
+
+def iterkeys(key: np.uint32) -> Iterator[np.uint32]:
+    while True:
+        yield key
+        key = next_key(key)
 
 class ParseError(Exception):
     pass
@@ -110,59 +120,34 @@ class DecryptedFile:
     name: str
     content: bytes
 
-POWERS = np.uint32(256) ** np.array([0, 1, 2, 3], dtype=np.uint32)
+def make_shifts_array(size: int) -> npt.NDArray[np.uint32]:
+    return np.array(
+        list(it.islice(it.cycle([0, 8, 16, 24]), size)),
+        dtype=np.uint32
+    )
 
-def decrypt_file(encrypted: EncryptedFile) -> DecryptedFile:
+def decrypt_file(
+    encrypted: EncryptedFile,
+    shifts: npt.NDArray[np.uint32] | None=None
+) -> DecryptedFile:
+        
     encrypted_content = encrypted.content
     size = len(encrypted_content)
-
-    if size % 4:
-        encrypted_content += b'\0' * (4 - size % 4)
-
-    # keys = [encrypted.key]
-
-    # for _ in range(size // 4):
-    #     keys.append(next_key(keys[-1]))
-    
     content_array = np.frombuffer(encrypted_content, dtype=np.uint8)
 
-    decrypted_content = bytearray()
-    pos = 0
-    # key = encrypted.key
-    key_array = np.array(list(encrypted.key.tobytes()), dtype=np.uint32)
+    key_array = np.array(list(it.islice(it.chain.from_iterable(
+        map(
+            partial(it.repeat, times=4),
+            iterkeys(encrypted.key)
+        )
+    ), size)), dtype=np.uint32)
 
-    while pos < size:
-        #v1
+    if shifts is None:
+        shifts = make_shifts_array(size)
 
-        # char, pos = parse_byte_fast(
-        #     encrypted_content, pos,
-        #     key >> SHIFTS[pos % 4]
-        # )
-
-        # if pos % 4 == 0:
-        #     key = next_key(key)
-
-        # decrypted_content.append(char)
-
-        #v2
-        # char1, pos = parse_byte_fast(encrypted_content, pos, key)
-        # char2, pos = parse_byte_fast(encrypted_content, pos, key >> EIGHT)
-        # char3, pos = parse_byte_fast(encrypted_content, pos, key >> SIXTEEN)
-        # char4, pos = parse_byte_fast(encrypted_content, pos, key >> TWENTY_FOUR)
-        # key = next_key(key)
-        # decrypted_content.extend((char1, char2, char3, char4))
-
-
-
-        #v3
-        raw_bytes = content_array[pos:pos + 4]
-        decoded = raw_bytes ^ key_array
-        key = next_key(key_array.dot(POWERS))
-        key_array = np.array(list(key.tobytes()), dtype=np.uint32)
-        decrypted_content.extend(list(decoded))
-        pos += 4
-
-    return DecryptedFile(encrypted.name, bytes(decrypted_content[:size]))
+    key_bytes = (key_array >> shifts[:size]).astype(np.uint8)
+    decrypted_content = bytes(content_array ^ key_bytes)
+    return DecryptedFile(encrypted.name, decrypted_content)
 
 def main(
     input_file: Path, output_dir: Path,
@@ -175,15 +160,26 @@ def main(
     with input_file.open('rb') as ifh:
         content = ifh.read()
 
-    encrypted_files = parse_encrypted_files(content)
-    
-    import itertools as it
+    if PROFILING:
+        max_size = max(
+            len(ef.content) for ef in it.islice(parse_encrypted_files(content), 25)
+        )
+    else:
+        max_size = max(
+            len(ef.content) for ef in parse_encrypted_files(content)
+        )
 
-    for ef in it.islice(encrypted_files, 10):
+    encrypted_files = parse_encrypted_files(content)
+    shifts = make_shifts_array(max_size)
+
+    if PROFILING:
+        encrypted_files = it.islice(encrypted_files, 25)
+
+    for ef in encrypted_files:
         if verbose:
             print(f'Decrypting file {ef.name} (key: {hex(ef.key)})...')
 
-        df = decrypt_file(ef)
+        df = decrypt_file(ef, shifts)
         path = (output_dir / df.name).absolute()
 
         if not overwrite and path.exists():
