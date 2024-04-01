@@ -9,19 +9,12 @@ import numpy as np
 import numpy.typing as npt
 from typing import Iterator
 
-PROFILING = False
+PROFILING = True
 
 RGSSAD_V1_KEY = np.uint32(0xdeadcafe)
 
 THREE = np.uint32(3)
 SEVEN = np.uint32(7)
-
-ZERO = np.uint32(0)
-EIGHT = np.uint32(8)
-SIXTEEN = np.uint32(16)
-TWENTY_FOUR = np.uint32(24)
-
-SHIFTS = [ZERO, EIGHT, SIXTEEN, TWENTY_FOUR]
 
 def next_key(key: np.uint32) -> np.uint32:
     return key * SEVEN + THREE
@@ -159,21 +152,15 @@ def main(
 
     with input_file.open('rb') as ifh:
         content = ifh.read()
-
-    if PROFILING:
-        max_size = max(
-            len(ef.content) for ef in it.islice(parse_encrypted_files(content), 25)
-        )
-    else:
-        max_size = max(
-            len(ef.content) for ef in parse_encrypted_files(content)
-        )
-
+    
     encrypted_files = parse_encrypted_files(content)
+
+    sizes = [len(ef.content) for ef in parse_encrypted_files(content)]
+    max_size = max(sizes[:100] if PROFILING else sizes)
     shifts = make_shifts_array(max_size)
 
     if PROFILING:
-        encrypted_files = it.islice(encrypted_files, 25)
+        encrypted_files = it.islice(encrypted_files, 100)
 
     for ef in encrypted_files:
         if verbose:
