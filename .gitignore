@@ -1,0 +1,7 @@
+env
+__pycache__
+.mypy_cache
+example/actual-output/*
+example/expected-output/*
+example/input.rgssad
+profile-op.txt
