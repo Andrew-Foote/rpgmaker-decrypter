@@ -9,8 +9,6 @@ import numpy as np
 import numpy.typing as npt
 from typing import Iterator
 
-PROFILING = True
-
 RGSSAD_V1_KEY = np.uint32(0xdeadcafe)
 
 THREE = np.uint32(3)
@@ -142,9 +140,11 @@ def decrypt_file(
     decrypted_content = bytes(content_array ^ key_bytes)
     return DecryptedFile(encrypted.name, decrypted_content)
 
+LIMIT_WHEN_PROFILING = 100
+
 def main(
     input_file: Path, output_dir: Path,
-    *, verbose: bool, overwrite: bool
+    *, overwrite: bool, profile: bool, verbose: bool
 ) -> None:
     
     if input_file.suffix != '.rgssad':
@@ -156,11 +156,11 @@ def main(
     encrypted_files = parse_encrypted_files(content)
 
     sizes = [len(ef.content) for ef in parse_encrypted_files(content)]
-    max_size = max(sizes[:100] if PROFILING else sizes)
+    max_size = max(sizes[:LIMIT_WHEN_PROFILING] if profile else sizes)
     shifts = make_shifts_array(max_size)
 
-    if PROFILING:
-        encrypted_files = it.islice(encrypted_files, 100)
+    if profile:
+        encrypted_files = it.islice(encrypted_files, LIMIT_WHEN_PROFILING)
 
     for ef in encrypted_files:
         if verbose:
@@ -193,12 +193,14 @@ if __name__ == '__main__':
 
     arg_parser.add_argument('input_file', type=Path)
     arg_parser.add_argument('output_dir', type=Path)
-    arg_parser.add_argument('-v', '--verbose', action='store_true')
     arg_parser.add_argument('-o', '--overwrite', action='store_true')
+    arg_parser.add_argument('-p', '--profile', action='store_true')
+    arg_parser.add_argument('-v', '--verbose', action='store_true')
     parsed_args = arg_parser.parse_args()
     
     main(
         parsed_args.input_file, parsed_args.output_dir,
-        verbose=parsed_args.verbose,
-        overwrite=parsed_args.overwrite
+        overwrite=parsed_args.overwrite,
+        profile=parsed_args.profile,
+        verbose=parsed_args.verbose
     )
