@@ -4,7 +4,7 @@
 
 This is a Python script which can be used to extract files from an RPG Maker XP encrypted archive. These archives have the extension `.rgssad` and are created when you choose to encrypt the game data when saving a project in RPG Maker XP.
 
-However, there is an existing program which does the same thing available at (https://github.com/uuksu/RPGMakerDecrypter)[https://github.com/uuksu/RPGMakerDecrypter]. That program is pretty much better than this one in every way as it's been developed for longer, supports more variants on the format, has a user-friendly GUI, is a lot faster, etc. This program exists only because I wanted to write my own version as an exercise. You probably shouldn't actually use it.
+However, there is an existing program which does the same thing available at [https://github.com/uuksu/RPGMakerDecrypter](https://github.com/uuksu/RPGMakerDecrypter). That program is pretty much better than this one in every way as it's been developed for longer, supports more variants on the format, has a user-friendly GUI, is a lot faster, etc. This program exists only because I wanted to write my own version as an exercise. You probably shouldn't actually use it.
 
 ## Installation
 
