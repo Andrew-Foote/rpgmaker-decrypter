@@ -1,6 +1,8 @@
 # Ported from the C# implementation at
 # https://github.com/uuksu/RPGMakerDecrypter/tree/master.
 
+# rewrite in cython?
+
 from dataclasses import dataclass
 from functools import partial
 import itertools as it
