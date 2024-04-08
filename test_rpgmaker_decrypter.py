@@ -7,7 +7,7 @@ import random
 from typing import Iterator
 import numpy as np
 import pytest
-from rpgmaker_decrypter import decrypt_file, parse_encrypted_files
+from rpgmaker_decrypter_main import decrypt_file, parse_encrypted_files
 
 EXPECTED_OUTPUT_PATH = Path('example/expected-output')
 
@@ -31,7 +31,7 @@ def test_filenames_match(input_content: bytes) -> None:
 
 def test_contents_match(input_content: bytes) -> None:
     numfiles = sum(1 for _ in parse_encrypted_files(input_content))
-    sample = random.sample(range(numfiles), 50)
+    sample = random.sample(range(numfiles), 100)
 
     for i, ef in enumerate(parse_encrypted_files(input_content)):
        if i in sample:
