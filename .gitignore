@@ -5,3 +5,7 @@ example/actual-output/*
 example/expected-output/*
 example/input.rgssad
 profile-op.txt
+build
+*.c
+*.pyd
+*.html
