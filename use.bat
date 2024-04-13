@@ -1,0 +1,1 @@
+python rpgmaker_decrypter.py example\input.rgssad example\actual-output -ov
