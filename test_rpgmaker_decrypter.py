@@ -5,20 +5,17 @@
 from pathlib import Path
 import random
 from typing import Iterator
-import numpy as np
 import pytest
-from rpgmaker_decrypter_main import decrypt_file, parse_encrypted_files
+from rpgmaker_decrypter import decrypt_file, parse_encrypted_files
 
 EXPECTED_OUTPUT_PATH = Path('example/expected-output')
 
 @pytest.fixture(scope='session')
 def input_content() -> Iterator[bytes]:
-    np.seterr(over='ignore')
-
     with Path('example/input.rgssad').open('rb') as ifh:
-        yield ifh.read()
+        yield memoryview(bytearray(ifh.read()))
 
-def test_filenames_match(input_content: bytes) -> None:
+def test_filenames_match(input_content: memoryview) -> None:
     actual_filenames = {ef.name for ef in parse_encrypted_files(input_content)}
 
     expected_filenames = {
@@ -29,7 +26,7 @@ def test_filenames_match(input_content: bytes) -> None:
 
     assert actual_filenames == expected_filenames
 
-def test_contents_match(input_content: bytes) -> None:
+def test_contents_match(input_content: memoryview) -> None:
     numfiles = sum(1 for _ in parse_encrypted_files(input_content))
     sample = random.sample(range(numfiles), 100)
 

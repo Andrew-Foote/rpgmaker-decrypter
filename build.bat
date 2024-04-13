@@ -1,0 +1,1 @@
+ cythonize -ai crpgmaker_decrypter.pyx
