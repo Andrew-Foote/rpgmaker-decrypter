@@ -3,11 +3,10 @@ from dataclasses import dataclass
 import itertools as it
 from pathlib import Path
 from typing import Iterator
-import cython as c
 from crpgmaker_decrypter import parse_encrypted_file, decrypt_file_content
 
 DECRYPT_LIMIT_WHEN_PROFILING = 500
-INITIAL_KEY: int = 0xdeadcafe
+INITIAL_KEY = 0xdeadcafe
 
 class ParseError(Exception):
     pass
@@ -47,7 +46,7 @@ def decrypt_file(encrypted: EncryptedFile) -> DecryptedFile:
     content = encrypted.content
     size = len(content)
     a = bytearray(bytes(content) + b'\0' * (4 - size % 4))
-    decrypt_file_content(a, encrypted.key)
+    decrypt_file_content(memoryview(a), encrypted.key)
     return DecryptedFile(encrypted.name, bytes(a[:size]))
 
 def main(

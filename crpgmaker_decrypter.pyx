@@ -15,7 +15,7 @@ def parse_encrypted_file(
     key = key * 7 + 3
 
     for _ in range(name_len):
-        z: c.char = content[pos] 
+        z: c.char = content[pos]
         z ^= key
         name.append(z)
         pos += 1
@@ -29,9 +29,11 @@ def parse_encrypted_file(
     return pos, size, key
 
 def decrypt_file_content(content: c.char[:], key: uint32_t) -> c.int:
+    size: c.int = len(content)
+    assert size % 4 == 0
     pos: c.int
 
-    for pos in range(0, len(content), 4):
+    for pos in range(0, size, 4):
         content[pos    ] ^= key         
         content[pos + 1] ^= (key >>  8)
         content[pos + 2] ^= (key >> 16) 

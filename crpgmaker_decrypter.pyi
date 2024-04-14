@@ -1,13 +1,10 @@
-import cython as c
-from cython.imports.libc.stdint import uint32_t
-
 def parse_encrypted_file(
-    content: c.char[:],
+    content: memoryview,
     name: bytearray,
-    pos: c.int,
-    key: uint32_t
-) -> tuple[c.int, c.int, uint32_t]:
+    pos: int,
+    key: int
+) -> tuple[int, int, int]:
     ...
 
-def decrypt_file_content(content: c.char[:], key: uint32_t) -> c.int:
+def decrypt_file_content(content: memoryview, key: int) -> int:
     ...
