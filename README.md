@@ -13,15 +13,22 @@ Clone the repository, set your current working directory to the root directory o
     py -m venv env
     env\Scripts\pip install -r requirements.txt
 
+Also run the following command to create the `crpgmaker_decrypter` module:
+
+    ./cythonize
+
 ## Running the program
 
     env\Scripts\python -m rpgmaker_decrypter <input_file> <output_dir>
 
+Replace `<input_file>` with the path to the `.rgssad` archive and replace `<output_dir>` with the path to the directory the decrypted files will be extracted to.
+
 Options:
 
-* `-v`, `--verbose`: prints messages to standard output showing you the names of the files in the archive that are being decrypted as they are being decrypted.
-* `-o`, `--overwrite`: makes so that if any of the file names specified in the archive already exists in the output directory, the file will be overwritten automatically, without the program asking the user for confirmation.
-* `-p`, `--profile`: makes it so that only the first 100 files in the archive will be decrypted. Useful to make the running time of the program shorter so you can profile it or test it more quickly.
+* `-o`, `--overwrite`: overwrite files in the output directory if they have the same name as one of the decrypted files (redundant if `-w` is used)
+* `-w`, `--wipe`: wipe output directory completely before writing into it
+* `-v`, `--verbose`: print messages to standard output showing which files are being decrypted
+* `-p`, `--profile`: only decrypt a limited number of files, to make the program run quicker when profiling/testing
 
 ## Testing
 

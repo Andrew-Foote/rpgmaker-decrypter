@@ -1,7 +1,8 @@
 import argparse
 from dataclasses import dataclass
 import itertools as it
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
+import shutil
 from typing import Iterator
 from crpgmaker_decrypter import parse_encrypted_file, decrypt_file_content
 
@@ -51,7 +52,7 @@ def decrypt_file(encrypted: EncryptedFile) -> DecryptedFile:
 
 def main(
     input_file: Path, output_dir: Path,
-    *, overwrite: bool, profile: bool, verbose: bool
+    *, overwrite: bool, wipe: bool, profile: bool, verbose: bool
 ) -> None:
     
     if input_file.suffix != '.rgssad':
@@ -59,6 +60,12 @@ def main(
 
     with input_file.open('rb') as ifh:
         content = memoryview(bytearray(ifh.read()))
+
+    if wipe:
+        if input(f'Wipe directory {output_dir}? (y/n) ') == 'y':
+            shutil.rmtree(output_dir)
+        else:
+            print('Decryption aborted')
     
     encrypted_files = parse_encrypted_files(content)
 
@@ -72,8 +79,11 @@ def main(
         if verbose:
             print(f'Decrypting file {ef.name}...')
 
+        # I'm assuming here that the paths will always be given in Windows
+        # syntax, since RPG Maker XP doesn't work natively on Linux
         df = decrypt_file(ef)
-        path = (output_dir / df.name).absolute()
+        dfname = PureWindowsPath(df.name).as_posix()
+        path = (output_dir / dfname).absolute()
 
         if not overwrite and path.exists():
             print(
@@ -94,16 +104,40 @@ if __name__ == '__main__':
         description='Decrypts RPG Maker XP game data files.'
     )
 
-    arg_parser.add_argument('input_file', type=Path)
-    arg_parser.add_argument('output_dir', type=Path)
-    arg_parser.add_argument('-o', '--overwrite', action='store_true')
-    arg_parser.add_argument('-p', '--profile', action='store_true')
-    arg_parser.add_argument('-v', '--verbose', action='store_true')
+    arg_parser.add_argument('input_file', type=Path, help=(
+        'the .rgssad file to parse'
+    ))
+
+    arg_parser.add_argument('output_dir', type=Path, help=(
+        'the output directory to store the decrypted files in'
+    ))
+    
+    arg_parser.add_argument('-o', '--overwrite', action='store_true', help=(
+        'overwrite files in the output directory if they have the same name as '
+        'one of the decrypted files (redundant if -w is used)'
+    ))
+    
+    arg_parser.add_argument('-w', '--wipe', action='store_true', help=(
+        'wipe output directory completely before writing into it'
+    ))
+
+    arg_parser.add_argument('-v', '--verbose', action='store_true', help=(
+        'print messages to standard output showing which files are being '
+        'decrypted'
+    ))
+
+    arg_parser.add_argument('-p', '--profile', action='store_true', help=(
+        f'only decrypt a limited number of files '
+        f'(namely {DECRYPT_LIMIT_WHEN_PROFILING}), to make the program run '
+        'quicker when profiling/testing'
+    ))
+
     parsed_args = arg_parser.parse_args()
     
     main(
         parsed_args.input_file, parsed_args.output_dir,
         overwrite=parsed_args.overwrite,
+        wipe=parsed_args.wipe,
         profile=parsed_args.profile,
         verbose=parsed_args.verbose
     )

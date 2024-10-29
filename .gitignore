@@ -9,3 +9,4 @@ build
 *.c
 *.pyd
 *.html
+*.so
